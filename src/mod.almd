@@ -1,0 +1,52 @@
+// fizz_camera_presets — カメラプリセットの framing 計算 + tween イージング。
+//
+// 責務 (一行): プリセット (face/upper/full) と、アバターの head/hips のワールド座標 +
+// 顔の向き (forward) から、目標カメラ位置と注視点を計算する。さらに tween 用の
+// easeInOutCubic を提供する。
+//
+// ブラウザは VRM から head/hips/forward を取り、ここで「目標カメラ pos/look」を得て、
+// 現在位置から ease(t) で lerp して Three.js カメラに適用する(適用 = I/O は JS)。
+// lipsync / idle / gesture と同じく計算コアを Almide で 1 回書き、native と wasm で使う。
+//
+// 移植元: openaituber src/vrm/scene.ts (gotoCameraPreset / easeInOutCubic)。
+//
+// ── preset ──            ── ch (cam の出力成分) ──
+//   0 face  (顔アップ)      0 pos_x  3 look_x
+//   1 upper (上半身)        1 pos_y  4 look_y
+//   2 full  (全身)          2 pos_z  5 look_z
+
+// 三次イージング (ease-in-out)。tween の進捗 t (0..1) → 補間係数 (0..1)。
+fn ease(t: Float) -> Float =
+  if t < 0.5 then 4.0 * t * t * t
+  else 1.0 - pow3(0.0 - 2.0 * t + 2.0) / 2.0
+
+local fn pow3(x: Float) -> Float = x * x * x
+
+// 線形補間 (ブラウザは Three.js の lerpVectors を使うが、native 確認用に提供)。
+fn lerp(a: Float, b: Float, k: Float) -> Float = a + (b - a) * k
+
+// プリセット preset の目標カメラ成分 ch を返す。
+//   head = (hx,hy,hz), hips = (ipx,ipy,ipz), forward = (fx,fy,fz)
+// face : pos = head + fwd*0.55,           look = head
+// upper: pos = (head + fwd*1.4) but y = head.y-0.15, look = (head.x, head.y-0.2, head.z)
+// full : pos = (hips + fwd*2.6) but y = hips.y+0.05, look = hips
+fn cam(
+  preset: Int, ch: Int,
+  hx: Float, hy: Float, hz: Float,
+  ipx: Float, ipy: Float, ipz: Float,
+  fx: Float, fy: Float, fz: Float,
+) -> Float = {
+  let px = if preset == 0 then hx + fx * 0.55
+           else if preset == 1 then hx + fx * 1.4
+           else ipx + fx * 2.6
+  let py = if preset == 0 then hy + fy * 0.55
+           else if preset == 1 then hy - 0.15
+           else ipy + 0.05
+  let pz = if preset == 0 then hz + fz * 0.55
+           else if preset == 1 then hz + fz * 1.4
+           else ipz + fz * 2.6
+  let lx = if preset == 2 then ipx else hx
+  let ly = if preset == 0 then hy else if preset == 1 then hy - 0.2 else ipy
+  let lz = if preset == 2 then ipz else hz
+  match ch { 0 => px, 1 => py, 2 => pz, 3 => lx, 4 => ly, 5 => lz, _ => 0.0 }
+}

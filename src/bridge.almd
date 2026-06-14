@@ -1,0 +1,30 @@
+// wasm エントリ — ブラウザのカメラ tween から呼ぶ。
+//
+// プリセット切替時に各成分 (pos xyz / look xyz) を cam(preset, ch, ...) で取得し、
+// 現在カメラから ease(t) で lerp して Three.js カメラに適用する(適用は JS)。
+//
+// preset / ch は Float で受ける(wasm の Int=i64 → JS BigInt を避けるため)。
+// codegen の tree-shaking 対策で main から全 export を参照してルート化(almide#440)。
+//
+// ビルド: almide build src/bridge.almd --target wasm -o build/camera.wasm
+
+import self as cam
+import float
+
+@export(wasm, "cam_component")
+fn cam_component(
+  preset: Float, ch: Float,
+  hx: Float, hy: Float, hz: Float,
+  ipx: Float, ipy: Float, ipz: Float,
+  fx: Float, fy: Float, fz: Float,
+) -> Float =
+  cam.cam(float.to_int(preset), float.to_int(ch), hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
+
+@export(wasm, "cam_ease")
+fn cam_ease(t: Float) -> Float = cam.ease(t)
+
+effect fn main() -> Unit = {
+  let _a = cam_component(0.0, 0.0, 0.0, 1.4, 0.0, 0.0, 0.8, 0.0, 0.0, 0.0, 1.0)
+  let _b = cam_ease(0.5)
+  ()
+}

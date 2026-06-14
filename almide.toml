@@ -1,0 +1,4 @@
+[package]
+name = "fizz_camera_presets"
+version = "0.1.0"
+description = "Fizz camera presets — face/upper/full framing math (camera pos + look-target from head/hips/forward) + easeInOutCubic tween. One Almide core, native + wasm."

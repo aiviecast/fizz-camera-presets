@@ -1,0 +1,60 @@
+// CLI エントリポイント (native) — プリセットへのカメラ tween 曲線を precompute / 確認。
+//
+// FIZZ_CAMERA (0=face 1=upper 2=full、既定 0) へ、デモ用の固定開始カメラから
+// ease(t) で lerp する軌跡を FIZZ_CAMERA_FPS で刻んで NDJSON 出力する。
+//
+//   {"t":..,"x":..,"y":..,"z":..}   ← カメラ位置の tween 軌跡
+//
+// デモのアンカー: head=(0,1.4,0), hips=(0,0.9,0), forward=(0,0,1)。同じ計算コア
+// (mod.almd) が wasm 側でも走る。record をループ内で束縛しない(成分は Float)ので
+// almide v0.27.6 でも安全 (S6-1 を踏まない)。
+
+import self as cp
+import env
+import json
+import value
+import string
+import int
+import float
+
+effect fn main() -> Unit = {
+  let preset = match int.parse(string.trim(env.get("FIZZ_CAMERA") ?? "")) {
+    ok(n)  => n,
+    err(_) => 0,
+  }
+  let fps = match int.parse(string.trim(env.get("FIZZ_CAMERA_FPS") ?? "")) {
+    ok(n)  => if n < 1 then 1 else n,
+    err(_) => 30,
+  }
+  // デモ用アンカー (head / hips / forward)。
+  let hx = 0.0
+  let hy = 1.4
+  let hz = 0.0
+  let ipx = 0.0
+  let ipy = 0.9
+  let ipz = 0.0
+  let fx = 0.0
+  let fy = 0.0
+  let fz = 1.0
+  // 開始カメラ (デモ) と、プリセットの目標位置。
+  let sx = 0.0
+  let sy = 1.4
+  let sz = 2.5
+  let tx = cp.cam(preset, 0, hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
+  let ty = cp.cam(preset, 1, hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
+  let tz = cp.cam(preset, 2, hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
+  let frames = 0.6 * int.to_float(fps)
+  let total = float.to_int(frames)
+  var i = 0
+  while i < total {
+    let t = int.to_float(i) / frames
+    let k = cp.ease(t)
+    println(json.stringify(value.object([
+      ("t", value.float(t)),
+      ("x", value.float(cp.lerp(sx, tx, k))),
+      ("y", value.float(cp.lerp(sy, ty, k))),
+      ("z", value.float(cp.lerp(sz, tz, k))),
+    ])))
+    i = i + 1
+  }
+}
