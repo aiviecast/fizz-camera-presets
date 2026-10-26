@@ -18,7 +18,7 @@ fn cam_component(
   ipx: Float, ipy: Float, ipz: Float,
   fx: Float, fy: Float, fz: Float,
 ) -> Float =
-  cam.cam(float.to_int(preset), float.to_int(ch), hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
+  cam.cam(int.from_saturating(preset), int.from_saturating(ch), hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
 
 @export(wasm, "cam_ease")
 fn cam_ease(t: Float) -> Float = cam.ease(t)

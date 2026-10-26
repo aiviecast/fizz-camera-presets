@@ -43,11 +43,11 @@ effect fn main() -> Unit = {
   let tx = cp.cam(preset, 0, hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
   let ty = cp.cam(preset, 1, hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
   let tz = cp.cam(preset, 2, hx, hy, hz, ipx, ipy, ipz, fx, fy, fz)
-  let frames = 0.6 * int.to_float(fps)
-  let total = float.to_int(frames)
+  let frames = 0.6 * float.from(fps)
+  let total = int.from_saturating(frames)
   var i = 0
   while i < total {
-    let t = int.to_float(i) / frames
+    let t = float.from(i) / frames
     let k = cp.ease(t)
     println(json.stringify(value.object([
       ("t", value.float(t)),
